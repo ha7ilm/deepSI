@@ -207,7 +207,7 @@ class System_data(object):
         if self.u is None:
             return 0
         elif self.u.ndim==1:
-            return None
+            return 1
         else:
             return self.u.shape[1] if self.u.ndim==2 else self.u.shape[1:]
 
