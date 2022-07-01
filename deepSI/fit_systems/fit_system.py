@@ -201,6 +201,12 @@ class System_torch(System_fittable):
             if sim_val_fun=='NRMS_sys_norm':
                 return self.norm.transform(val_sys_data_sim).RMS(self.norm.transform(val_sys_data))
             else:
+                #if validation_measure.find('(')!=-1:
+                #    #get the part inside brackets from validation_measure
+                #    inside_brackets = validation_measure.split('(')[1].split(')')[0]
+                #    #turn list of numbers in string into numpy array
+                #    numbers_inside_brackets = np.array(inside_brackets.split(','),dtype=float)
+                #    return val_sys_data_sim.NRMS(val_sys_data, multi_average=False,per_channel=True)*numbers_inside_brackets 
                 return val_sys_data_sim.__getattribute__(sim_val_fun)(val_sys_data)
         elif validation_measure.find('step')!=-1:
             splitted = validation_measure.split('-')
