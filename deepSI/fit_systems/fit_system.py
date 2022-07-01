@@ -421,7 +421,7 @@ class System_torch(System_fittable):
                         valfeqstr = f''
                     trainstr = f'sqrt loss {train_loss_epoch**0.5:7.4}' if sqrt_train and train_loss_epoch>=0 else f'loss {train_loss_epoch:7.4}'
                     Loss_val_now = self.Loss_val[-1] if len(self.Loss_val)!=0 else float('nan')
-                    Loss_str = f'Epoch {epoch+1:4}, {trainstr}, Val {validation_measure} {Loss_val_now:6.4}'
+                    Loss_str = f'Epoch {epoch+1:4}, {trainstr}, Val {validation_measure} {Loss_val_now:6.4} (Best {self.bestfit:6.4} @ {best_epoch})'
                     loss_time = (t.acc_times['loss'] + t.acc_times['optimizer start'] + t.acc_times['zero_grad'] + t.acc_times['backward'] + t.acc_times['stepping'])  /t.time_elapsed
                     time_str = f'Time Loss: {loss_time:.1%}, data: {t.acc_times["data get"]/t.time_elapsed:.1%}, val: {t.acc_times["val"]/t.time_elapsed:.1%}{valfeqstr}'
                     self.batch_feq = (self.batch_counter - batch_id_start)/(time.time() - start_t)
