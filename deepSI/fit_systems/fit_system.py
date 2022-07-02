@@ -152,7 +152,13 @@ class System_torch(System_fittable):
                 self.norm.fit(sys_data)
         self.init_nets(self.nu, self.ny)
         self.to_device(device=device)
-        parameters_and_optim = [{**item,**parameters_optimizer_kwargs.get(name,{})} for name,item in self.parameters_with_names.items()]
+        parameters_and_optim = []
+        for name,item in self.parameters_with_names.items():
+            current_dict = {**item,**parameters_optimizer_kwargs.get(name,{})}
+            if name=="fn": current_dict['lr']=1e-3
+            parameters_and_optim.append(current_dict)
+            
+
         self.optimizer = self.init_optimizer(parameters_and_optim, **optimizer_kwargs)
         self.scheduler = self.init_scheduler(**scheduler_kwargs)
         self.bestfit = float('inf')
