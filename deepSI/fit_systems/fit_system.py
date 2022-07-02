@@ -386,10 +386,6 @@ class System_torch(System_fittable):
                     t.tic('optimizer start')
                     training_loss = self.optimizer.step(lambda backward=True: closure(backward, epoch=epoch, bestfit=self.bestfit)).item()
                     t.toc('stepping')
-                    if self.scheduler:
-                        t.tic('scheduler')
-                        self.scheduler.step()
-                        t.tic('scheduler')
                     Loss_acc_val += training_loss
                     Loss_acc_epoch += training_loss
                     N_batch_acc_val += 1
@@ -403,6 +399,10 @@ class System_torch(System_fittable):
                     t.toc('val')
                     t.tic('data get')
                 t.toc('data get')
+                if self.scheduler: #it should be called once every epoch, before it was called multiple times
+                    t.tic('scheduler')
+                    self.scheduler.step()
+                    t.tic('scheduler')
 
                 ########## end of epoch clean up ##########
                 train_loss_epoch = Loss_acc_epoch/N_batch_updates_per_epoch
