@@ -359,9 +359,11 @@ class System_torch(System_fittable):
                     if cuda:
                         train_batch = [b.cuda() for b in train_batch]
                     t.toc('data get')
-                    def closure(backward=True):
+                    def closure(backward=True, epoch=None, bestfit=None):
                         t.toc('optimizer start')
                         t.tic('loss')
+                        loss_kwargs['epoch']=epoch
+                        loss_kwargs['bestfit']=bestfit
                         Loss = self.loss(*train_batch, **loss_kwargs)
                         t.toc('loss')
                         if backward:
@@ -375,7 +377,7 @@ class System_torch(System_fittable):
                         return Loss
 
                     t.tic('optimizer start')
-                    training_loss = self.optimizer.step(closure).item()
+                    training_loss = self.optimizer.step(lambda backward=True: closure(backward, epoch=epoch, bestfit=self.bestfit)).item()
                     t.toc('stepping')
                     if self.scheduler:
                         t.tic('scheduler')
