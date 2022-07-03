@@ -155,6 +155,8 @@ class System_torch(System_fittable):
         parameters_and_optim = []
         for name,item in self.parameters_with_names.items():
             current_dict = {**item,**parameters_optimizer_kwargs.get(name,{})}
+            if hasattr(self.__getattribute__(name),'param_group_kwargs'):
+                current_dict = {**current_dict,**self.__getattribute__(name).param_group_kwargs}
             #if name=="fn": current_dict['lr']=1e-3
             #current_dict['lr']=1
             parameters_and_optim.append(current_dict)

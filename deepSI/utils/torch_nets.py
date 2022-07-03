@@ -537,6 +537,11 @@ class integrator_RK4(time_integrators):
         k3 = self.dt*self.deriv(x+k2/2,u) #t=dt/2
         k4 = self.dt*self.deriv(x+k3,u) #t=dt
         return x + (k1 + 2*k2 + 2*k3 + k4)/6
+    
+    @property
+    def param_group_kwargs(self):
+        return self.deriv_base.param_group_kwargs if hasattr(self.deriv_base,'param_group_kwargs') else {}
+            
 
 class integrator_euler(time_integrators):
     def forward(self, x, u): #u constant on segment
