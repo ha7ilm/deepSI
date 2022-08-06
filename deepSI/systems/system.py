@@ -181,7 +181,7 @@ class System(object):
             
             simulate_system_instance = simulate_system_torchscript(self.nx, self.nu, self.ny, fn_sim_traced,hn_sim_traced)
             simulate_system_scripted = torch.jit.script(simulate_system_instance)
-            X, Y = simulate_system_scripted.forward(torch.tensor([x0]),torch.tensor(U[k0:]).float())
+            X, Y = simulate_system_instance.forward(torch.tensor([x0]),torch.tensor(U[k0:]).float())
             if dt_old is not None: self.dt = dt_old
             return self.norm.inverse_transform(System_data(u=np.array(U),y=np.array(Y),x=np.array(X) if save_state else None,normed=True,cheat_n=k0,dt=sys_data.dt))  
 
