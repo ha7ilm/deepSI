@@ -7,6 +7,7 @@ import copy
 import gym
 from gym.spaces import Box
 from matplotlib import pyplot as plt
+import torch
 
 def load_system(file):
     """This is not a safe function, only use on trusted files"""
@@ -132,15 +133,31 @@ class System(object):
         if save_state:
             X = [self.get_state()]*k0
 
-        for u in U[k0:]:
-            if save_state:
-                X.append(self.get_state())
-            Y.append(self.measure_act(u)) #also advances state
-        
-        if dt_old is not None:
-            self.dt = dt_old
-        
-        return self.norm.inverse_transform(System_data(u=np.array(U),y=np.array(Y),x=np.array(X) if save_state else None,normed=True,cheat_n=k0,dt=sys_data.dt))  
+        if 0:
+            for u in U[k0:]:
+                if save_state:
+                    X.append(self.get_state())
+                Y.append(self.measure_act(u)) #also advances state
+            
+            if dt_old is not None:
+                self.dt = dt_old
+            
+            return self.norm.inverse_transform(System_data(u=np.array(U),y=np.array(Y),x=np.array(X) if save_state else None,normed=True,cheat_n=k0,dt=sys_data.dt))  
+        else:
+            x0=self.get_state() 
+            fn_sim_traced = torch.jit.trace(self.fn,(torch.tensor([x0]),torch.tensor([U[0]]).float()))
+            hn_sim_traced = torch.jit.trace(self.hn,(torch.tensor([x0])))
+            def scriptable_sim(x0,U):
+                current_x = x0
+                for current_u in U:
+                    current_x = fn_sim_traced(current_x, current_u)
+                    X.append(current_x)
+                    Y.append(hn_sim_traced(current_x, current_u))
+                return X, Y
+            self.scripted_sim = torch.jit.script(scriptable_sim)
+            if dt_old is not None: self.dt = dt_old
+            X, Y = self.scripted_sim(x0,U[k0:])
+            return self.norm.inverse_transform(System_data(u=np.array(U),y=np.array(Y),x=np.array(X) if save_state else None,normed=True,cheat_n=k0,dt=sys_data.dt))  
 
     def measure_act(self, action):
         '''
