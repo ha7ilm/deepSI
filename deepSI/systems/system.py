@@ -9,6 +9,35 @@ from gym.spaces import Box
 from matplotlib import pyplot as plt
 import torch
 
+class simulate_system_torchscript(torch.nn.Module):
+    def __init__(self, nx, nu, ny, fn_sim_traced, hn_sim_traced):
+        super(simulate_system_torchscript, self).__init__()
+        self.fn_sim_traced = fn_sim_traced
+        self.hn_sim_traced = hn_sim_traced
+        self.nx = nx
+        self.nu = nu
+        self.ny = ny
+
+    def forward(self,x0,u):
+        with torch.no_grad():
+            x = x0
+            x_sim_H = torch.zeros((u.shape[0],self.nx))
+            y_sim_H = torch.zeros((u.shape[0],self.ny))
+            for i in range(u.shape[0]):
+                x = self.fn_sim_traced(x,u[i,:])
+                x_sim_H[i,:] = x
+                y_sim_H[i,:] = self.hn_sim_traced(x)
+            return x_sim_H, y_sim_H
+
+
+def scriptable_sim(fn_sim_traced,hn_sim_traced,x0,U):
+    current_x = x0
+    for current_u in U:
+        current_x = fn_sim_traced(current_x, current_u)
+        X.append(current_x)
+        Y.append(hn_sim_traced(current_x, current_u))
+    return X, Y
+
 def load_system(file):
     """This is not a safe function, only use on trusted files"""
     try:
@@ -145,18 +174,15 @@ class System(object):
             return self.norm.inverse_transform(System_data(u=np.array(U),y=np.array(Y),x=np.array(X) if save_state else None,normed=True,cheat_n=k0,dt=sys_data.dt))  
         else:
             x0=self.get_state() 
+            print('jit.trace() on fn and hn...')
             fn_sim_traced = torch.jit.trace(self.fn,(torch.tensor([x0]),torch.tensor([U[0]]).float()))
             hn_sim_traced = torch.jit.trace(self.hn,(torch.tensor([x0])))
-            def scriptable_sim(x0,U):
-                current_x = x0
-                for current_u in U:
-                    current_x = fn_sim_traced(current_x, current_u)
-                    X.append(current_x)
-                    Y.append(hn_sim_traced(current_x, current_u))
-                return X, Y
-            self.scripted_sim = torch.jit.script(scriptable_sim)
+            print('done tracing fn and hn.')
+            
+            simulate_system_instance = simulate_system_torchscript(self.nx, self.nu, self.ny, fn_sim_traced,hn_sim_traced)
+            simulate_system_scripted = torch.jit.script(simulate_system_instance)
+            X, Y = simulate_system_scripted.forward(torch.tensor([x0]),torch.tensor(U[k0:]).float())
             if dt_old is not None: self.dt = dt_old
-            X, Y = self.scripted_sim(x0,U[k0:])
             return self.norm.inverse_transform(System_data(u=np.array(U),y=np.array(Y),x=np.array(X) if save_state else None,normed=True,cheat_n=k0,dt=sys_data.dt))  
 
     def measure_act(self, action):
