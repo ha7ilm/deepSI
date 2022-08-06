@@ -10,23 +10,24 @@ from matplotlib import pyplot as plt
 import torch
 
 class simulate_system_torchscript(torch.nn.Module):
-    def __init__(self, nx, nu, ny, fn_sim_traced, hn_sim_traced):
+    def __init__(self, nx, nu, ny, N_sim_length, fn_sim_traced, hn_sim_traced):
         super(simulate_system_torchscript, self).__init__()
         self.fn_sim_traced = fn_sim_traced
         self.hn_sim_traced = hn_sim_traced
         self.nx = nx
         self.nu = nu
         self.ny = ny
+        self.N_sim_length = N_sim_length
 
     def forward(self,x0,u):
         with torch.no_grad():
             x = x0
-            x_sim_H = torch.zeros((u.shape[0],self.nx))
-            y_sim_H = torch.zeros((u.shape[0],self.ny))
-            for i in range(u.shape[0]):
+            x_sim_H = torch.empty((self.N_sim_length,self.nx))
+            y_sim_H = torch.empty((self.N_sim_length,self.ny))
+            for i in range(self.N_sim_length):
                 x = self.fn_sim_traced(x,u[i,:])
-                x_sim_H[i,:] = x
-                y_sim_H[i,:] = self.hn_sim_traced(x)
+                x_sim_H[i,:] = x[0,:]
+                y_sim_H[i,:] = self.hn_sim_traced(x)[0,:]
             return x_sim_H, y_sim_H
 
 
@@ -179,9 +180,15 @@ class System(object):
             hn_sim_traced = torch.jit.trace(self.hn,(torch.tensor([x0])))
             print('done tracing fn and hn.')
             
-            simulate_system_instance = simulate_system_torchscript(self.nx, self.nu, self.ny, fn_sim_traced,hn_sim_traced)
+            N_sim_length = U.shape[0]
+            simulate_system_instance = simulate_system_torchscript(self.nx, self.nu, self.ny, N_sim_length, fn_sim_traced, hn_sim_traced)
+            print('scripting simulate_system_instance...')
             simulate_system_scripted = torch.jit.script(simulate_system_instance)
-            X, Y = simulate_system_instance.forward(torch.tensor([x0]),torch.tensor(U[k0:]).float())
+            print('scripting simulate_system_instance done.')
+            print('forward()...')
+            with torch.no_grad():
+                X, Y = simulate_system_scripted.forward(torch.tensor([x0]),torch.tensor(U).float())
+            print('forward() done.')
             if dt_old is not None: self.dt = dt_old
             return self.norm.inverse_transform(System_data(u=np.array(U),y=np.array(Y),x=np.array(X) if save_state else None,normed=True,cheat_n=k0,dt=sys_data.dt))  
 
