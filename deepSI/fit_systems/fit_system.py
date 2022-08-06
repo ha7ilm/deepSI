@@ -13,6 +13,16 @@ from torch.utils.data import Dataset, DataLoader
 import itertools
 from copy import deepcopy
 import warnings
+import os
+
+class itercls:
+    """Iterator that clears the screen for tqdm"""
+    def __init__(self, what): self.what = what
+    def __iter__(self): return self.what.__iter__()
+    def __next__(self):
+        #print('\x1bc')
+        #os.system('clear')
+        return self.what.__next__()
 
 class System_fittable(System):
     """Subclass of system which introduces a .fit method which calls ._fit to fit the systems
@@ -358,8 +368,9 @@ class System_torch(System_fittable):
             epochsrange = range(epochs) if timeout is None else itertools.count(start=0)
             if timeout is not None and verbose>0: 
                 print(f'Starting indefinite training until {timeout} seconds have passed due to provided timeout')
-
-            for epoch in (tqdm(epochsrange) if verbose>0 else epochsrange):
+            for epoch in epochsrange:
+                #print('\x1bc')
+                print('Epoch: ', epoch, '/', len(epochsrange))
                 bestfit_old = self.bestfit #to check if a new lowest validation loss has been achieved
                 Loss_acc_epoch = 0.
                 t.start()
