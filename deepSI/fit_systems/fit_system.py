@@ -477,7 +477,7 @@ class System_torch(System_fittable):
     def checkpoint_save_system(self, name='_best', directory=None):
         directory  = get_work_dirs()['checkpoints'] if directory is None else directory
         file = os.path.join(directory,self.name + name + '.pth')
-        torch.save(self.__dict__, file)
+        #torch.save(self.__dict__, file) #UNDO we have to comment it out because it cannot save scripted modules mixed into non-scripted modules.
     def checkpoint_load_system(self, name='_best', directory=None):
         directory  = get_work_dirs()['checkpoints'] if directory is None else directory
         file = os.path.join(directory,self.name + name + '.pth')
