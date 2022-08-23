@@ -227,10 +227,10 @@ class SS_encoder_general(System_torch):
         self.state = torch.zeros(1,self.nx)
 
     def measure_act_multi(self,action):
-        action = torch.tensor(action, dtype=torch.float32) #(N,...)
+        action = torch.tensor(action, dtype=torch.float32, device='cuda') #(N,...)
         with torch.no_grad():
             feedthrough = self.feedthrough if hasattr(self,'feedthrough') else False
-            y_predict = self.hn(self.state, action).numpy() if feedthrough else self.hn(self.state).numpy()
+            y_predict = self.hn(self.state, action).cpu().numpy() if feedthrough else self.hn(self.state).cpu().numpy()
             self.state = self.fn(self.state, action)
         return y_predict
 

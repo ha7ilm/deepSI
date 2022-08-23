@@ -335,6 +335,7 @@ class System(object):
         k0 = self.init_state_multi(sys_data, nf=nf, stride=stride)
         _, _, ufuture, yfuture = sys_data.to_hist_future_data(na=k0, nb=k0, nf=nf, stride=stride)
 
+        self.state = self.state.to('cuda')
         Losses = []
         for unow, ynow in zip(np.swapaxes(ufuture,0,1), np.swapaxes(yfuture,0,1)):
             obs = self.measure_act_multi(unow)
