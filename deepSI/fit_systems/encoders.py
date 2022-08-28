@@ -217,8 +217,8 @@ class SS_encoder_general(System_torch):
         na_right = self.na_right if hasattr(self,'na_right') else 0
         nb_right = self.nb_right if hasattr(self,'nb_right') else 0
         uhist, yhist = sys_data.to_hist_future_data(na=self.na, nb=self.nb, nf=nf, na_right=na_right, nb_right=nb_right, stride=stride)[:2] #(1,)
-        uhist = torch.tensor(uhist,dtype=torch.float32)
-        yhist = torch.tensor(yhist,dtype=torch.float32)
+        uhist = torch.tensor(uhist,dtype=torch.float32,device='cuda')
+        yhist = torch.tensor(yhist,dtype=torch.float32,device='cuda')
         with torch.no_grad():
             self.state = self.encoder(uhist,yhist)
         return max(self.na,self.nb)
