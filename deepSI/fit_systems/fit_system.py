@@ -1,4 +1,4 @@
-
+import sys
 from deepSI.systems.system import System, System_io, System_data, load_system
 import numpy as np
 from deepSI.datasets import get_work_dirs
@@ -269,7 +269,7 @@ class System_torch(System_fittable):
             will print the full time profile, useful for debugging and basic process optimization. 
         scheduler_kwargs : dict
             learning rate scheduals are a work in progress.
-        
+
         Notes
         -----
         This method implements a batch optimization method in the following way; each epoch the training data is scrambled and batched where each batch
@@ -297,6 +297,7 @@ class System_torch(System_fittable):
             self.train()
             return Loss_val
         
+        #stdout_dup = os.dup(sys.stdout.fileno())
         ########## Initialization ##########
         if self.init_model_done==False:
             if verbose: print('Initilizing the model and optimizer')
@@ -415,9 +416,13 @@ class System_torch(System_fittable):
                     break
 
                 t.tic('val')
+                andras_tic = time.time()
+                print('validating...')
                 if not concurrent_val:
                     validation(train_loss=train_loss_epoch, \
                                time_elapsed_total=time.time()-start_t+extra_t) #updates bestfit and goes back to cpu and back
+                andras_toc = time.time()-andras_tic
+                print('validation done in '+str(andras_toc)+' s')
                 t.toc('val')
                 t.pause()
 
@@ -448,6 +453,7 @@ class System_torch(System_fittable):
                     if time.time() >= start_t+timeout:
                         break
         except KeyboardInterrupt:
+            #os.dup2(stdout_dup,sys.stdout.fileno())
             print('Stopping early due to a KeyboardInterrupt')
 
         self.train(); self.cpu()
