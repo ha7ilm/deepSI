@@ -383,7 +383,10 @@ class System_torch(System_fittable):
                             self.optimizer.zero_grad()
                             t.toc('zero_grad')
                             t.tic('backward')
+                            print('fit :: backward')
+                            andras_tic = time.time()
                             Loss.backward()
+                            print('fit :: backward done in '+str(time.time()-andras_tic)+' s')
                             t.toc('backward')
                         t.tic('stepping')
                         return Loss
@@ -417,12 +420,12 @@ class System_torch(System_fittable):
 
                 t.tic('val')
                 andras_tic = time.time()
-                print('validating...')
+                print('fit :: validating...')
                 if not concurrent_val:
                     validation(train_loss=train_loss_epoch, \
                                time_elapsed_total=time.time()-start_t+extra_t) #updates bestfit and goes back to cpu and back
                 andras_toc = time.time()-andras_tic
-                print('validation done in '+str(andras_toc)+' s')
+                print('fit :: validation done in '+str(andras_toc)+' s')
                 t.toc('val')
                 t.pause()
 
