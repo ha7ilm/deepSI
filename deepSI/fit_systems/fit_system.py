@@ -376,6 +376,7 @@ class System_torch(System_fittable):
                         loss_kwargs['epoch']=epoch
                         loss_kwargs['bestfit']=bestfit
                         loss_kwargs['param_groups']=self.optimizer.param_groups
+                        print("fit_system :: closure :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']])
                         Loss = self.loss(*train_batch, **loss_kwargs)
                         t.toc('loss')
                         if backward:
