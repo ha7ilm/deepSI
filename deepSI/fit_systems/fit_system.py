@@ -376,7 +376,7 @@ class System_torch(System_fittable):
                         loss_kwargs['epoch']=epoch
                         loss_kwargs['bestfit']=bestfit
                         loss_kwargs['param_groups']=self.optimizer.param_groups
-                        print("fit_system :: closure :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']])
+                        #print("fit_system :: closure :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']])
                         Loss = self.loss(*train_batch, **loss_kwargs)
                         t.toc('loss')
                         if backward:
@@ -393,7 +393,9 @@ class System_torch(System_fittable):
                         return Loss
 
                     t.tic('optimizer start')
+                    print("fit_system :: before optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']])
                     training_loss = self.optimizer.step(lambda backward=True: closure(backward, epoch=epoch, bestfit=self.bestfit)).item()
+                    print("fit_system :: after optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']])
                     t.toc('stepping')
                     Loss_acc_val += training_loss
                     Loss_acc_epoch += training_loss
