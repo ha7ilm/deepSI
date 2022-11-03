@@ -217,8 +217,8 @@ class SS_encoder_general(System_torch):
         na_right = self.na_right if hasattr(self,'na_right') else 0
         nb_right = self.nb_right if hasattr(self,'nb_right') else 0
         uhist, yhist = sys_data.to_hist_future_data(na=self.na, nb=self.nb, nf=nf, na_right=na_right, nb_right=nb_right, stride=stride)[:2] #(1,)
-        uhist = torch.tensor(uhist,dtype=torch.float32,device='cuda')
-        yhist = torch.tensor(yhist,dtype=torch.float32,device='cuda')
+        uhist = torch.tensor(uhist,dtype=torch.float32,device=self.tgt_device)
+        yhist = torch.tensor(yhist,dtype=torch.float32,device=self.tgt_device)
         with torch.no_grad():
             self.state = self.encoder(uhist,yhist)
         return max(self.na,self.nb)
@@ -227,7 +227,7 @@ class SS_encoder_general(System_torch):
         self.state = torch.zeros(1,self.nx)
 
     def measure_act_multi(self,action):
-        action = torch.tensor(action, dtype=torch.float32, device='cuda') #(N,...)
+        action = torch.tensor(action, dtype=torch.float32, device=self.tgt_device) #(N,...)
         with torch.no_grad():
             feedthrough = self.feedthrough if hasattr(self,'feedthrough') else False
             y_predict = self.hn(self.state, action).cpu().numpy() if feedthrough else self.hn(self.state).cpu().numpy()

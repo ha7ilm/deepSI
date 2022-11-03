@@ -282,7 +282,7 @@ class System_torch(System_fittable):
         '''
         def validation(train_loss=None, time_elapsed_total=None):
             self.eval()
-            self.cuda()
+            if self.tgt_device == 'cuda': self.cuda()
             Loss_val = self.cal_validation_error(val_sys_data, validation_measure=validation_measure)
             self.Loss_val.append(Loss_val)
             self.Loss_train.append(train_loss)
@@ -292,8 +292,6 @@ class System_torch(System_fittable):
             if self.bestfit>=Loss_val:
                 self.bestfit = Loss_val
                 self.checkpoint_save_system()
-            #if cuda: 
-            #    self.cuda()
             self.train()
             return Loss_val
         
