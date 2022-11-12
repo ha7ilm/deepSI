@@ -351,6 +351,8 @@ class System_torch(System_fittable):
             validation(train_loss=float('nan'), time_elapsed_total=extra_t) #also sets current model to cuda
             if verbose: 
                 print(f'Initial Validation {validation_measure}=', self.Loss_val[-1])
+        logfile = open('deepsi-params.txt','w')
+        print("deepsi :: you will find the logfile at ", os.getcwd()+'/deepsi-params.txt') 
 
         try:
             t = Tictoctimer()
@@ -391,9 +393,11 @@ class System_torch(System_fittable):
                         return Loss
 
                     t.tic('optimizer start')
-                    print("fit_system :: before optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']])
+                    np.set_printoptions(precision = None)
+                    print("fit_system :: before optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']], file=logfile)
                     training_loss = self.optimizer.step(lambda backward=True: closure(backward, epoch=epoch, bestfit=self.bestfit)).item()
-                    print("fit_system :: after optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']])
+                    print("fit_system :: after optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']], file=logfile)
+                    np.set_printoptions(precision = 8)
                     t.toc('stepping')
                     Loss_acc_val += training_loss
                     Loss_acc_epoch += training_loss
