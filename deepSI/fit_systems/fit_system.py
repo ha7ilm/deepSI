@@ -431,13 +431,22 @@ class System_torch(System_fittable):
                     break
 
                 t.tic('val')
-                andras_tic = time.time()
-                print('fit :: validating...')
-                if not concurrent_val:
+
+                #read json from file valsetting.json:
+                try:
+                    with open('valsettings.json') as f: valsettings = json.load(f)
+                except:
+                    print('fit :: failed to read valsettings.json')
+                    valsettings = {}
+                    valsettings['no_val_until'] = 0
+
+                if not concurrent_val and epoch>=valsettings['no_val_until']:
+                    andras_tic = time.time()
+                    print('fit :: validating...')
                     validation(train_loss=train_loss_epoch, \
                                time_elapsed_total=time.time()-start_t+extra_t) #updates bestfit and goes back to cpu and back
-                andras_toc = time.time()-andras_tic
-                print('fit :: validation done in '+str(andras_toc)+' s')
+                    andras_toc = time.time()-andras_tic
+                    print('fit :: validation done in '+str(andras_toc)+' s')
                 t.toc('val')
                 t.pause()
 
