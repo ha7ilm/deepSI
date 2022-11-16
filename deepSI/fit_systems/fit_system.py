@@ -291,10 +291,17 @@ class System_torch(System_fittable):
             self.epoch_id.append(self.epoch_counter)
             if self.bestfit>=Loss_val:
                 self.bestfit = Loss_val
+                self.i_am_bestmodel = True
                 self.checkpoint_save_system()
+                self.bestmodel = deepcopy(self.__dict__)
+                if cuda: self.bestmodel.cpu()
+                self.i_am_bestmodel = False
             self.train()
             return Loss_val
         
+        self.i_am_bestmodel = False
+        self.bestmodel = None
+
         #stdout_dup = os.dup(sys.stdout.fileno())
         ########## Initialization ##########
         if self.init_model_done==False:
@@ -481,18 +488,30 @@ class System_torch(System_fittable):
         
         self.Loss_val, self.Loss_train, self.batch_id, self.time, self.epoch_id = np.array(self.Loss_val), np.array(self.Loss_train), np.array(self.batch_id), np.array(self.time), np.array(self.epoch_id)
         self.checkpoint_save_system(name='_last')
-        try:
-            self.checkpoint_load_system(name='_best')
-        except FileNotFoundError:
-            print('no best checkpoint found keeping last')
+        # try:
+        #     self.checkpoint_load_system(name='_best')
+        # except FileNotFoundError:
+        #     print('No best checkpoint file found! Best checkpoint not loaded.')
         if verbose: 
-            print(f'Loaded model with best known validation {validation_measure} of {self.bestfit:6.4} which happened on epoch {best_epoch} (epoch_id={self.epoch_id[-1] if len(self.epoch_id)>0 else 0:.2f})')
+            print(f'Best known validation {validation_measure} of {self.bestfit:6.4} which happened on epoch {best_epoch} (epoch_id={self.epoch_id[-1] if len(self.epoch_id)>0 else 0:.2f})')
+
+    def finalize_model(self):
+        #this needs to be done before plotting
+        self.Loss_val, self.Loss_train, self.batch_id, self.time, self.epoch_id = np.array(self.Loss_val), np.array(self.Loss_train), np.array(self.batch_id), np.array(self.time), np.array(self.epoch_id)
+
 
     ########## Saving and loading ############
     def checkpoint_save_system(self, name='_best', directory=None):
         directory  = get_work_dirs()['checkpoints'] if directory is None else directory
         file = os.path.join(directory,self.name + name + '.pth')
-        #torch.save(self.__dict__, file) #UNDO we have to comment it out because it cannot save scripted modules mixed into non-scripted modules.
+        bestmodel_temp = self.bestmodel
+        self.bestmodel = None #we don't store recursively the best model
+        try:
+            torch.save(self.__dict__, file) #UNDO we have to comment it out because it cannot save scripted modules mixed into non-scripted modules.
+        except Exception as what:
+            print('Could not save checkpoint because of the error below. (Are you mixing scripted and non-scripted modues?)')
+            print(what)
+        self.bestmodel = bestmodel_temp
     def checkpoint_load_system(self, name='_best', directory=None):
         directory  = get_work_dirs()['checkpoints'] if directory is None else directory
         file = os.path.join(directory,self.name + name + '.pth')
