@@ -13,6 +13,7 @@ from torch.utils.data import Dataset, DataLoader
 import itertools
 from copy import deepcopy
 import warnings
+import json
 
 class System_fittable(System):
     """Subclass of system which introduces a .fit method which calls ._fit to fit the systems
@@ -434,7 +435,7 @@ class System_torch(System_fittable):
 
                 #read json from file valsetting.json:
                 try:
-                    with open('valsettings.json') as f: valsettings = json.load(f)
+                    with open('valsettings.json','r') as f: valsettings = json.load(f)
                 except:
                     print('fit :: failed to read valsettings.json')
                     valsettings = {}
