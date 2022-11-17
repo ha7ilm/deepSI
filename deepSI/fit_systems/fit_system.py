@@ -294,6 +294,7 @@ class System_torch(System_fittable):
                 self.bestfit = Loss_val
                 self.i_am_bestmodel = True
                 self.checkpoint_save_system()
+                self.bestmodel = None
                 self.bestmodel = deepcopy(self.__dict__)
                 if cuda: self.bestmodel.cpu()
                 self.i_am_bestmodel = False
