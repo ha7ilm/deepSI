@@ -402,12 +402,13 @@ class System_torch(System_fittable):
                         return Loss
 
                     t.tic('optimizer start')
-                    np.set_printoptions(precision = None)
-                    print("fit_system :: before optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']], file=logfile)
+                    np.set_printoptions(precision = None, threshold = sys.maxsize)
+                    print("epoch ", epoch, " | fit_system :: before optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']], file=logfile)
                     training_loss = self.optimizer.step(lambda backward=True: closure(backward, epoch=epoch, bestfit=self.bestfit)).item()
-                    print("fit_system :: after optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']], file=logfile)
-                    np.set_printoptions(precision = 8)
+                    print("epoch ", epoch, "fit_system :: after optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']], file=logfile)
+                    np.set_printoptions(precision = 8, threshold = 1000)
                     t.toc('stepping')
+                    #self.derivn.robot.check_if_params_phy_meaningful()
                     Loss_acc_val += training_loss
                     Loss_acc_epoch += training_loss
                     N_batch_acc_val += 1
