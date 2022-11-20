@@ -55,7 +55,7 @@ class System(object):
         self.seed = 42
         self._dt = None
         self.check_valid_system()
-        self.tgt_device = 'cpu'
+        self.tgt_device = 'cuda' #TGT
 
     def exists(self, name):
         return getattr(self,name).__func__!=getattr(System, name)

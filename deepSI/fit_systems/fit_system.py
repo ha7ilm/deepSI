@@ -295,8 +295,9 @@ class System_torch(System_fittable):
                 self.i_am_bestmodel = True
                 self.checkpoint_save_system()
                 self.bestmodel = None
-                self.bestmodel = deepcopy(self.__dict__)
-                if cuda: self.bestmodel.cpu()
+                selfcopy = deepcopy(self)
+                if cuda: selfcopy.cpu()
+                self.bestmodel = selfcopy.__dict__
                 self.i_am_bestmodel = False
             self.train()
             return Loss_val
