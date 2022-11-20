@@ -386,17 +386,20 @@ class System_torch(System_fittable):
                         loss_kwargs['bestfit']=bestfit
                         loss_kwargs['param_groups']=self.optimizer.param_groups
                         #print("fit_system :: closure :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']])
+                        sys.stdout.write('fit :: calculating loss...')
+                        andras_tic = time.time()
                         Loss = self.loss(*train_batch, **loss_kwargs)
+                        print('loss done in '+str(time.time()-andras_tic)+' s')
                         t.toc('loss')
                         if backward:
                             t.tic('zero_grad')
                             self.optimizer.zero_grad()
                             t.toc('zero_grad')
                             t.tic('backward')
-                            print('fit :: backward')
+                            sys.stdout.write('fit :: backward... ')
                             andras_tic = time.time()
                             Loss.backward()
-                            print('fit :: backward done in '+str(time.time()-andras_tic)+' s')
+                            print('backward done in '+str(time.time()-andras_tic)+' s')
                             t.toc('backward')
                         t.tic('stepping')
                         return Loss
@@ -445,11 +448,11 @@ class System_torch(System_fittable):
 
                 if not concurrent_val and epoch>=valsettings['no_val_until']:
                     andras_tic = time.time()
-                    print('fit :: validating...')
+                    sys.stdout.write('fit :: validating... ')
                     validation(train_loss=train_loss_epoch, \
                                time_elapsed_total=time.time()-start_t+extra_t) #updates bestfit and goes back to cpu and back
                     andras_toc = time.time()-andras_tic
-                    print('fit :: validation done in '+str(andras_toc)+' s')
+                    print('validation done in '+str(andras_toc)+' s')
                 t.toc('val')
                 t.pause()
 
