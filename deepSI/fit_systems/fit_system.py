@@ -154,14 +154,16 @@ class System_torch(System_fittable):
         self.init_nets(self.nu, self.ny)
         self.to_device(device=device)
         parameters_and_optim = []
-        for name,item in self.parameters_with_names.items():
-            current_dict = {**item,**parameters_optimizer_kwargs.get(name,{})}
-            if hasattr(self.__getattribute__(name),'param_group_kwargs'):
-                current_dict = {**current_dict,**self.__getattribute__(name).param_group_kwargs}
-            #if name=="fn": current_dict['lr']=1e-3
-            #current_dict['lr']=1
-            parameters_and_optim.append(current_dict)
-            
+        #for name,item in self.parameters_with_names.items():
+        #    current_dict = {**item,**parameters_optimizer_kwargs.get(name,{})}
+        #    if hasattr(self.__getattribute__(name),'param_group_kwargs'):
+        #        current_dict = {**current_dict,**self.__getattribute__(name).param_group_kwargs}
+        #    #if name=="fn": current_dict['lr']=1e-3
+        #    #current_dict['lr']=1
+        #    parameters_and_optim.append(current_dict)
+        print('fit :: in this modified version of DeepSI, we treat differently the PHY and ANN parameters of the robot')
+        parameters_and_optim.append({'params':list(self.fn.parameters())[0:4]}) #only the first 4 parameters of the fn: this is for the PHY model
+        parameters_and_optim.append({'params':list(self.fn.parameters())[4:], 'weight_decay': 0.1}) #the 4+ parameters of the fn: this is for the ANN
 
         self.optimizer = self.init_optimizer(parameters_and_optim, **optimizer_kwargs)
         self.scheduler = self.init_scheduler(**scheduler_kwargs)
@@ -406,11 +408,17 @@ class System_torch(System_fittable):
                         return Loss
 
                     t.tic('optimizer start')
-                    np.set_printoptions(precision = None, threshold = sys.maxsize)
-                    print("epoch ", epoch, " | fit_system :: before optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']], file=logfile)
+                    #np.set_printoptions(precision = None, threshold = sys.maxsize)
+                    #print("epoch ", epoch, " | fit_system :: before optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']], file=logfile)
+                    torch.set_printoptions(profile="full")
+                    print("epoch", epoch, " | fit_system :: before optimizer.step :: param_groups[1] = ", str(self.fn.state_dict()), file=logfile)
+                    torch.set_printoptions(profile="full")
+
                     training_loss = self.optimizer.step(lambda backward=True: closure(backward, epoch=epoch, bestfit=self.bestfit)).item()
-                    print("epoch ", epoch, "fit_system :: after optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']], file=logfile)
-                    np.set_printoptions(precision = 8, threshold = 1000)
+                    print("epoch", epoch, "fit_system :: after optimizer.step :: param_groups[1] =", str(self.fn.state_dict()), file=logfile)
+                    torch.set_printoptions(profile="default") 
+                    #print("epoch", epoch, "fit_system :: after optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']], file=logfile)
+                    #np.set_printoptions(precision = 8, threshold = 1000)
                     t.toc('stepping')
                     #self.derivn.robot.check_if_params_phy_meaningful()
                     Loss_acc_val += training_loss
@@ -731,6 +739,8 @@ def print_array_byte_size(Dsize):
     print('Size of the training array = ', dstr)
 
 if __name__ == '__main__':
+    print('you do not want to run this directly')
+    sys.exit(1)    
     # sys = deepSI.fit_systems.SS_encoder(nx=3,na=5,nb=5)
     sys = deepSI.fit_systems.Torch_io_siso(10,10)
     train, test = deepSI.datasets.CED()
