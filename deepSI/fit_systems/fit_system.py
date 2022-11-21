@@ -163,7 +163,8 @@ class System_torch(System_fittable):
         #    parameters_and_optim.append(current_dict)
         print('fit :: in this modified version of DeepSI, we treat differently the PHY and ANN parameters of the robot')
         parameters_and_optim.append({'params':list(self.fn.parameters())[0:4]}) #only the first 4 parameters of the fn: this is for the PHY model
-        parameters_and_optim.append({'params':list(self.fn.parameters())[4:], 'weight_decay': 0.1}) #the 4+ parameters of the fn: this is for the ANN
+        parameters_and_optim.append({'params':list(self.fn.parameters())[4:]}) #the 4+ parameters of the fn: this is for the ANN
+        #parameters_and_optim.append({'params':list(self.fn.parameters())[4:], 'weight_decay': 0.1}) #the 4+ parameters of the fn: this is for the ANN, with weight decay if needed
 
         self.optimizer = self.init_optimizer(parameters_and_optim, **optimizer_kwargs)
         self.scheduler = self.init_scheduler(**scheduler_kwargs)
