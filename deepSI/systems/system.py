@@ -286,7 +286,7 @@ class System(object):
         return self.norm.inverse_transform(System_data(u=np.array(sys_data_norm.u),y=np.array(Y),normed=True,cheat_n=k0))   
         # raise NotImplementedError('one_step_ahead is to be implemented')
 
-    def n_step_error(self,sys_data,nf=100,stride=1,mode='NRMS',mean_channels=True):
+    def n_step_error(self,sys_data,nf=100,stride=1,mode='NRMS',mean_channels=True, both_mean_and_not=False):
         '''Calculate the expected error after taking n=1...nf steps.
 
         Parameters
@@ -361,7 +361,10 @@ class System(object):
         if dt_old is not None:
             self.dt = dt_old
 
-        return np.array([np.mean(a) for a in Losses]) if mean_channels else np.array(Losses)
+        if both_mean_and_not:
+            return (np.array([np.mean(a) for a in Losses]), np.array(Losses))
+        else:
+            return np.array([np.mean(a) for a in Losses]) if mean_channels else np.array(Losses)
 
     def n_step_error_plot(self, sys_data, nf=100, stride=1, mode='NRMS', mean_channels=True, show=True):
         Losses = self.n_step_error(sys_data, nf=nf, stride=stride, mode=mode, mean_channels=mean_channels)

@@ -218,8 +218,8 @@ class System_torch(System_fittable):
             splitted = validation_measure.split('-')
             nstep = int(splitted[0])
             mode = splitted[-1]
-            n_step_error = self.n_step_error(val_sys_data, nf=nstep, stride=1, mode=mode, mean_channels=True)
-
+            n_step_error, n_step_error_per_channel = self.n_step_error(val_sys_data, nf=nstep, stride=1, mode=mode, mean_channels=True, both_mean_and_not=True)
+            #print('cal_validation_error :: n_step_error_per_channel =',n_step_error_per_channel)
             if len(splitted)==3:
                 average_method = 'average'
             else:
@@ -364,7 +364,7 @@ class System_torch(System_fittable):
             if verbose: 
                 print(f'Initial Validation {validation_measure}=', self.Loss_val[-1])
         logfile = open('deepsi-params.txt','w')
-        print("deepsi :: you will find the logfile at ", os.getcwd()+'/deepsi-params.txt') 
+        print("fit :: you will find the logfile at ", os.getcwd()+'/deepsi-params.txt') 
 
         try:
             t = Tictoctimer()
@@ -740,7 +740,7 @@ def print_array_byte_size(Dsize):
 
 if __name__ == '__main__':
     print('you do not want to run this directly')
-    sys.exit(1)    
+    sys.exit(0)    
     # sys = deepSI.fit_systems.SS_encoder(nx=3,na=5,nb=5)
     sys = deepSI.fit_systems.Torch_io_siso(10,10)
     train, test = deepSI.datasets.CED()
