@@ -412,11 +412,11 @@ class System_torch(System_fittable):
                     #np.set_printoptions(precision = None, threshold = sys.maxsize)
                     #print("epoch ", epoch, " | fit_system :: before optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']], file=logfile)
                     torch.set_printoptions(profile="full")
-                    print("epoch", epoch, " | fit_system :: before optimizer.step :: param_groups[1] = ", str(self.fn.state_dict()), file=logfile)
+                    #print("epoch", epoch, " | fit_system :: before optimizer.step :: param_groups[1] = ", str(self.fn.state_dict()), file=logfile)
                     torch.set_printoptions(profile="full")
 
                     training_loss = self.optimizer.step(lambda backward=True: closure(backward, epoch=epoch, bestfit=self.bestfit)).item()
-                    print("epoch", epoch, "fit_system :: after optimizer.step :: param_groups[1] =", str(self.fn.state_dict()), file=logfile)
+                    #print("epoch", epoch, "fit_system :: after optimizer.step :: param_groups[1] =", str(self.fn.state_dict()), file=logfile)
                     torch.set_printoptions(profile="default") 
                     #print("epoch", epoch, "fit_system :: after optimizer.step :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']], file=logfile)
                     #np.set_printoptions(precision = 8, threshold = 1000)
