@@ -236,7 +236,7 @@ class System_torch(System_fittable):
 
     def fit(self, train_sys_data, val_sys_data, epochs=30, batch_size=256, loss_kwargs={}, \
             auto_fit_norm=True, validation_measure='sim-NRMS', optimizer_kwargs={}, concurrent_val=False, cuda=False, \
-            timeout=None, verbose=1, sqrt_train=True, num_workers_data_loader=0, print_full_time_profile=False, scheduler_kwargs={}):
+            timeout=None, verbose=1, sqrt_train=True, num_workers_data_loader=0, print_full_time_profile=False, scheduler_kwargs={}, load_state={}):
         '''The batch optimization method with parallel validation, 
 
         Parameters
@@ -311,7 +311,7 @@ class System_torch(System_fittable):
         #stdout_dup = os.dup(sys.stdout.fileno())
         ########## Initialization ##########
         if self.init_model_done==False:
-            if verbose: print('Initilizing the model and optimizer')
+            if verbose: print('Initializing the model and optimizer')
             device = 'cuda' if cuda else 'cpu'
             optimizer_kwargs = deepcopy(optimizer_kwargs)
             parameters_optimizer_kwargs = optimizer_kwargs.get('parameters_optimizer_kwargs',{})
@@ -321,6 +321,10 @@ class System_torch(System_fittable):
                     parameters_optimizer_kwargs=parameters_optimizer_kwargs, scheduler_kwargs=scheduler_kwargs)
         else:
             if verbose: print('Model already initilized (init_model_done=True), skipping initilizing of the model, the norm and the creation of the optimizer')
+
+        if load_state:
+            self.fn.load_state_dict(load_state['fn_state_dict'])
+            print('loaded fn_state_dict')
 
         if self.scheduler==False and verbose:
             print('!!!! Your might be continuing from a save which had scheduler but which was removed during saving... check this !!!!!!')
