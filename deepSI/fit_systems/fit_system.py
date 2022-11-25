@@ -287,7 +287,7 @@ class System_torch(System_fittable):
         def validation(train_loss=None, time_elapsed_total=None):
             self.eval()
             if self.tgt_device == 'cuda': self.cuda()
-            Loss_val = self.cal_validation_error(val_sys_data, validation_measure=validation_measure)
+            Loss_val = self.cal_validation_error_derivn(val_sys_data, validation_measure=validation_measure)
             self.Loss_val.append(Loss_val)
             self.Loss_train.append(train_loss)
             self.time.append(time_elapsed_total)
@@ -296,17 +296,18 @@ class System_torch(System_fittable):
             if self.bestfit>=Loss_val:
                 self.bestfit = Loss_val
                 self.i_am_bestmodel = True
-                self.checkpoint_save_system()
-                self.bestmodel = None
-                selfcopy = deepcopy(self)
-                if cuda: selfcopy.cpu()
-                self.bestmodel = selfcopy.__dict__
-                self.i_am_bestmodel = False
+                #self.checkpoint_save_system()
+                #self.bestmodel = None
+                #selfcopy = deepcopy(self)
+                #if cuda: selfcopy.cpu()
+                #self.bestmodel = selfcopy.__dict__
+                #self.i_am_bestmodel = False
             self.train()
             return Loss_val
         
         self.i_am_bestmodel = False
         self.bestmodel = None
+        self.bestfit_nsn = 1e10
 
         #stdout_dup = os.dup(sys.stdout.fileno())
         ########## Initialization ##########
@@ -344,6 +345,7 @@ class System_torch(System_fittable):
 
         #### transforming it back to a list to be able to append. ########
         self.Loss_val, self.Loss_train, self.batch_id, self.time, self.epoch_id = list(self.Loss_val), list(self.Loss_train), list(self.batch_id), list(self.time), list(self.epoch_id)
+        self.Loss_val_nsn = []
 
         #### init monitoring values ########
         Loss_acc_val, N_batch_acc_val, val_counter, best_epoch, batch_id_start = 0, 0, 0, 0, self.batch_counter #to print the frequency of the validation step.
@@ -453,14 +455,14 @@ class System_torch(System_fittable):
                 t.tic('val')
 
                 #read json from file valsetting.json:
-                try:
-                    with open('valsettings.json','r') as f: valsettings = json.load(f)
-                except:
-                    print('fit :: failed to read valsettings.json')
-                    valsettings = {}
-                    valsettings['no_val_until'] = 0
+                #try:
+                #    with open('valsettings.json','r') as f: valsettings = json.load(f)
+                #except:
+                #    print('fit :: failed to read valsettings.json')
+                #    valsettings = {}
+                #    valsettings['no_val_until'] = 0
 
-                if not concurrent_val and epoch>=valsettings['no_val_until']:
+                if not concurrent_val: # and epoch>=valsettings['no_val_until']:
                     andras_tic = time.time()
                     sys.stdout.write('fit :: validating... ')
                     validation(train_loss=train_loss_epoch, \
@@ -469,6 +471,29 @@ class System_torch(System_fittable):
                     print('validation done in '+str(andras_toc)+' s')
                 t.toc('val')
                 t.pause()
+
+                if epoch%1000==0:
+                    andras_tic = time.time()
+                    sys.stdout.write('fit :: validating N-step-NRMS on PHY... ')
+                    self.eval()
+                    self.derivn.disable_nn = True
+                    current_val_nsn = self.cal_validation_error(val_sys_data, validation_measure='100-step-NRMS')
+                    self.derivn.disable_nn = False
+                    self.Loss_val_nsn.append(current_val_nsn)
+                    if self.bestfit_nsn>=current_val_nsn:
+                        self.bestfit_nsn = current_val_nsn
+                        self.i_am_bestmodel = True
+                        self.bestmodel = None
+                        self.bestmodel_epoch = epoch
+                        selfcopy = deepcopy(self)
+                        if cuda: selfcopy.cpu()
+                        self.bestmodel = selfcopy.__dict__
+                        self.i_am_bestmodel = False
+                        print('🙂 new lowest validation-nsn error: '+str(self.bestfit_nsn))
+                    self.train()
+                    andras_toc = time.time()-andras_tic
+                    print('validation NsN done in '+str(andras_toc)+' s')
+
 
                 ######### Printing Routine ##########
                 if verbose>0:
@@ -518,7 +543,7 @@ class System_torch(System_fittable):
         self.Loss_val, self.Loss_train, self.batch_id, self.time, self.epoch_id = np.array(self.Loss_val), np.array(self.Loss_train), np.array(self.batch_id), np.array(self.time), np.array(self.epoch_id)
         self.checkpoint_save_system(name='_last')
         # try:
-        #     self.checkpoint_load_system(name='_best')
+        #     self.checkpoint_load_system(name='_best') #so this can cause the full val. & train. loss to not be plotted
         # except FileNotFoundError:
         #     print('No best checkpoint file found! Best checkpoint not loaded.')
         if verbose: 
