@@ -308,6 +308,7 @@ class System_torch(System_fittable):
         self.i_am_bestmodel = False
         self.bestmodel = None
         self.bestfit_nsn = 1e10
+        fval2dup = open('val2-dupfile.txt','w')
 
         #stdout_dup = os.dup(sys.stdout.fileno())
         ########## Initialization ##########
@@ -480,6 +481,8 @@ class System_torch(System_fittable):
                     current_val_nsn = self.cal_validation_error(val_sys_data, validation_measure='100-step-NRMS')
                     self.derivn.disable_nn = False
                     self.Loss_val_nsn.append(current_val_nsn)
+                    print(f"epoch {epoch} validation_nsn: {current_val_nsn}")
+                    print(f"epoch {epoch} validation_nsn: {current_val_nsn}". file=fval2dup)
                     if self.bestfit_nsn>=current_val_nsn:
                         self.bestfit_nsn = current_val_nsn
                         self.i_am_bestmodel = True
@@ -490,6 +493,7 @@ class System_torch(System_fittable):
                         self.bestmodel = selfcopy.__dict__
                         self.i_am_bestmodel = False
                         print('🙂 new lowest validation-nsn error: '+str(self.bestfit_nsn))
+                        print('🙂 new lowest validation-nsn error: '+str(self.bestfit_nsn), file=fval2dup)
                     self.train()
                     andras_toc = time.time()-andras_tic
                     print('validation NsN done in '+str(andras_toc)+' s')
