@@ -482,7 +482,7 @@ class System_torch(System_fittable):
                     self.derivn.disable_nn = False
                     self.Loss_val_nsn.append(current_val_nsn)
                     print(f"epoch {epoch} validation_nsn: {current_val_nsn}")
-                    print(f"epoch {epoch} validation_nsn: {current_val_nsn}". file=fval2dup)
+                    print(f"epoch {epoch} validation_nsn: {current_val_nsn}", file=fval2dup)
                     if self.bestfit_nsn>=current_val_nsn:
                         self.bestfit_nsn = current_val_nsn
                         self.i_am_bestmodel = True
