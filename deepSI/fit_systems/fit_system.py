@@ -497,10 +497,11 @@ class System_torch(System_fittable):
                     self.train()
                     andras_toc = time.time()-andras_tic
                     print('validation NsN done in '+str(andras_toc)+' s')
-                    print('abs max [0] friction parameters:  ', self.optimizer.param_groups[0]['params'].abs().max().item(), file=fval2dup)
-                    print('abs max [1] dynamical parameters: ', self.optimizer.param_groups[1]['params'].abs().max().item(), file=fval2dup)
-                    print('abs max [2] hwc parameters:       ', self.optimizer.param_groups[2]['params'].abs().max().item(), file=fval2dup)
-                    print('abs max [3] u parameters:         ', self.optimizer.param_groups[3]['params'].abs().max().item(), file=fval2dup)
+                    andras_toc = time.time()-andras_tic
+                    print('abs max [0] friction parameters:  ', self.optimizer.param_groups[0]['params'][0].abs().max().item(), file=fval2dup)
+                    print('abs max [1] dynamical parameters: ', self.optimizer.param_groups[0]['params'][1].abs().max().item(), file=fval2dup)
+                    print('abs max [2] hwc parameters:       ', self.optimizer.param_groups[0]['params'][2].abs().max().item(), file=fval2dup)
+                    print('abs max [3] u parameters:         ', self.optimizer.param_groups[0]['params'][3].abs().max().item(), file=fval2dup)
 
                 ######### Printing Routine ##########
                 if verbose>0:
