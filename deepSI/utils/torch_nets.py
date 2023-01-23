@@ -536,6 +536,13 @@ class integrator_RK4(time_integrators):
         k2 = self.dt*self.deriv(x+k1/2,u) #t=dt/2
         k3 = self.dt*self.deriv(x+k2/2,u) #t=dt/2
         k4 = self.dt*self.deriv(x+k3,u) #t=dt
+        #with torch.no_grad():
+        #    with open('integrator_dump.txt','a') as f:
+        #        #convert k1 into python floats, with full precision:
+        #        np.set_printoptions(precision=None)
+        #        to_log = torch.cat([k1, x, u],axis=1).cpu().numpy().tolist()
+        #        f.write(str(to_log).replace('[','').replace(']','')+"\n")
+        #        np.set_printoptions(precision=8)
         return x + (k1 + 2*k2 + 2*k3 + k4)/6
     
     @property

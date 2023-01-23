@@ -374,6 +374,9 @@ class System_torch(System_fittable):
         logfile = open('deepsi-params.txt','w')
         print("deepsi :: you will find the logfile at ", os.getcwd()+'/deepsi-params.txt') 
 
+        current_train_andras_nsn = self.andras_n_step_nrms(train_sys_data, 15)
+        current_gerben_train_nsn = self.cal_validation_error(train_sys_data, validation_measure='15-step-NRMS')
+
         try:
             t = Tictoctimer()
             start_t = time.time() #time keeping
@@ -396,7 +399,8 @@ class System_torch(System_fittable):
                         loss_kwargs['epoch']=epoch
                         loss_kwargs['bestfit']=bestfit
                         loss_kwargs['param_groups']=self.optimizer.param_groups
-                        #print("fit_system :: closure :: param_groups[1] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[1]['params']])
+                        #print("fit_system :: closure :: param_groups[0] =", [torch.detach(p.cpu()).numpy() for p in self.optimizer.param_groups[0]['params']])
+                        #with open('optimizer_state_dict.py', 'w') as fp: fp.write(str(self.optimizer.param_groups[0]['params']))
                         sys.stdout.write('fit :: calculating loss...')
                         andras_tic = time.time()
                         Loss = self.loss(*train_batch, **loss_kwargs)
@@ -478,7 +482,7 @@ class System_torch(System_fittable):
                     sys.stdout.write('fit :: validating N-step-NRMS on PHY... ')
                     self.eval()
                     self.derivn.disable_nn = True
-                    current_val_nsn = self.cal_validation_error(val_sys_data, validation_measure='100-step-NRMS')
+                    current_val_nsn = self.cal_validation_error(val_sys_data, validation_measure='15-step-NRMS')
                     self.derivn.disable_nn = False
                     self.Loss_val_nsn.append(current_val_nsn)
                     print(f"epoch {epoch} validation_nsn: {current_val_nsn}")
@@ -502,6 +506,22 @@ class System_torch(System_fittable):
                     print('abs max [1] dynamical parameters: ', self.optimizer.param_groups[0]['params'][1].abs().max().item(), file=fval2dup)
                     print('abs max [2] hwc parameters:       ', self.optimizer.param_groups[0]['params'][2].abs().max().item(), file=fval2dup)
                     print('abs max [3] u parameters:         ', self.optimizer.param_groups[0]['params'][3].abs().max().item(), file=fval2dup)
+
+                    #set printoptions to print all elements of a tensor, with full floating point precision:
+                    np.set_printoptions(precision = None, threshold = 1000)
+                    print('f_vis  =', self.optimizer.param_groups[0]['params'][0][0:6].data, file=fval2dup)
+                    print('f_coul =', self.optimizer.param_groups[0]['params'][0][6:12].data, file=fval2dup)
+                    print('f_a    =', self.optimizer.param_groups[0]['params'][0][12:18].data, file=fval2dup)
+                    print('f_b    =', self.optimizer.param_groups[0]['params'][0][18:24].data, file=fval2dup)
+                    print('f_asym =', self.optimizer.param_groups[0]['params'][0][24:30].data, file=fval2dup)
+                    #The elements of tensor x are printed one by one, with num=1 as: "L_1xx = 0.1, L_1xy=0.1, L_1xz=0.1, L_1yy=0.1, L_1yz=0.1, L_1zz=0.1, l_1x=0.1, l_1y=0.1, l_1z=0.1, m_1=0.1, Ia_1=0.1". Make this formatting for me:
+                    def print_dyn(x, num):
+                        print('L_'+str(num)+'xx =', x[0], ', L_'+str(num)+'xy =', x[1], ', L_'+str(num)+'xz =', x[2], ', L_'+str(num)+'yy =', x[3], ', L_'+str(num)+'yz =', x[4], ', L_'+str(num)+'zz =', x[5], ', l_'+str(num)+'x =', x[6], ', l_'+str(num)+'y =', x[7], ', l_'+str(num)+'z =', x[8], ', m_'+str(num)+' =', x[9], ', Ia_'+str(num)+' =', x[10], file=fval2dup)
+                    for i in range(6):
+                        print_dyn(self.optimizer.param_groups[0]['params'][1][(11*i):(11*i+11)].detach().numpy(), i+1)
+
+
+                    fval2dup.flush()
 
                 ######### Printing Routine ##########
                 if verbose>0:
@@ -556,6 +576,29 @@ class System_torch(System_fittable):
         #     print('No best checkpoint file found! Best checkpoint not loaded.')
         if verbose: 
             print(f'Best known validation {validation_measure} of {self.bestfit:6.4} which happened on epoch {best_epoch} (epoch_id={self.epoch_id[-1] if len(self.epoch_id)>0 else 0:.2f})')
+
+    def andras_n_step_nrms(self, data, n_steps, weigh_by_y_var=True, one_number=False):
+        with torch.no_grad():
+            y=torch.tensor(data.y)
+            u=torch.tensor(data.u)
+            #n_timeswecando = y.shape[0]-n_steps-1 #the amount of times the window of n_steps fits in the length of the data [[XXXX].......] 
+            sliding_window = torch.arange(0, y.shape[0]).unfold(0,n_steps+1,1)
+            y_window = y[sliding_window, :] #[n_timeswecando x n_steps+1 x n_states]
+            u_window = u[sliding_window, :]
+            y_current = y_window[:,0,:]
+            y_stack = []
+            y_stack.append(y_current)
+            for i in range(n_steps):
+                y_current = self.fn(y_current, u_window[:,i,:])
+                y_stack.append(y_current)
+            y_stack = torch.stack(y_stack, dim=1)
+            
+            r = (y_stack-y_window)**2
+            if weigh_by_y_var: r = r / y.std(dim=0).pow(2)[None,None,:].repeat(y_stack.shape[0],y_stack.shape[1],1)
+            if one_number:
+                return torch.mean(r.reshape((-1,)))
+            else: 
+                return torch.mean(r ,dim=0)
 
     def finalize_model(self):
         #this needs to be done before plotting
