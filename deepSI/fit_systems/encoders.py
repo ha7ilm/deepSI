@@ -227,10 +227,7 @@ class SS_encoder_general(System_torch):
         self.state = torch.zeros(1,self.nx)
 
     def measure_act_multi(self,action):
-        if len(action)==1: #case for action when it's a single item
-            action = torch.tensor(action[0], dtype=torch.float32, device=self.tgt_device)[None,:]
-        else:
-            action = torch.tensor(action, dtype=torch.float32, device=self.tgt_device) #(N,...)
+        action = torch.tensor(action, dtype=torch.float32, device=self.tgt_device) #(N,...)
         with torch.no_grad():
             feedthrough = self.feedthrough if hasattr(self,'feedthrough') else False
             y_predict = self.hn(self.state, action).cpu().numpy() if feedthrough else self.hn(self.state).cpu().numpy()
