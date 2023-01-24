@@ -482,7 +482,9 @@ class System_torch(System_fittable):
                     sys.stdout.write('fit :: validating N-step-NRMS on PHY... ')
                     self.eval()
                     self.derivn.disable_nn = True
-                    current_val_nsn = self.cal_validation_error(val_sys_data, validation_measure='15-step-NRMS')
+                    N_samples = 600
+                    N_samples_cutoff = 0
+                    current_val_nsn = self.cal_validation_error(val_sys_data[N_samples_cutoff:N_samples-N_samples_cutoff], validation_measure='15-step-NRMS')
                     self.derivn.disable_nn = False
                     self.Loss_val_nsn.append(current_val_nsn)
                     print(f"epoch {epoch} validation_nsn: {current_val_nsn}")
