@@ -579,7 +579,7 @@ class System_torch(System_fittable):
         if verbose: 
             print(f'Best known validation {validation_measure} of {self.bestfit:6.4} which happened on epoch {best_epoch} (epoch_id={self.epoch_id[-1] if len(self.epoch_id)>0 else 0:.2f})')
 
-    def andras_n_step_nrms(self, data, n_steps, weigh_by_y_var=True, one_number=False):
+    def andras_n_step_nrms(self, data, n_steps, weigh_by_y_var=True, one_number=False, return_simulation_data=False, mean_channels=True):
         with torch.no_grad():
             y=torch.tensor(data.y)
             u=torch.tensor(data.u)
@@ -595,12 +595,19 @@ class System_torch(System_fittable):
                 y_stack.append(y_current)
             y_stack = torch.stack(y_stack, dim=1)
             
-            r = (y_stack-y_window)**2
+            r = (y_stack[:,:,0:6]-y_window[:,:,0:6])**2
             if weigh_by_y_var: r = r / y.std(dim=0).pow(2)[None,None,:].repeat(y_stack.shape[0],y_stack.shape[1],1)
             if one_number:
-                return torch.mean(r.reshape((-1,)))
+                to_return = torch.mean(r.reshape((-1,)))
+            elif mean_channels: 
+                to_return = torch.mean(torch.mean(r,dim=0),dim=1)
             else: 
-                return torch.mean(r ,dim=0)
+                to_return = torch.mean(r,dim=0)
+            if return_simulation_data:
+                return (to_return, y_stack, y_window, u_window, r)
+            else:
+                return to_return
+
 
     def finalize_model(self):
         #this needs to be done before plotting
