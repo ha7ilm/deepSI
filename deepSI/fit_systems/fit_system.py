@@ -579,36 +579,6 @@ class System_torch(System_fittable):
         if verbose: 
             print(f'Best known validation {validation_measure} of {self.bestfit:6.4} which happened on epoch {best_epoch} (epoch_id={self.epoch_id[-1] if len(self.epoch_id)>0 else 0:.2f})')
 
-    def andras_n_step_nrms(self, data, n_steps, weigh_by_y_var=True, one_number=False, return_simulation_data=False, mean_channels=True):
-        with torch.no_grad():
-            y=torch.tensor(data.y)
-            u=torch.tensor(data.u)
-            #n_timeswecando = y.shape[0]-n_steps-1 #the amount of times the window of n_steps fits in the length of the data [[XXXX].......] 
-            sliding_window = torch.arange(0, y.shape[0]).unfold(0,n_steps+1,1)
-            y_window = y[sliding_window, :] #[n_timeswecando x n_steps+1 x n_states]
-            u_window = u[sliding_window, :]
-            y_current = y_window[:,0,:]
-            y_stack = []
-            y_stack.append(y_current)
-            for i in range(n_steps):
-                y_current = self.fn(y_current, u_window[:,i,:])
-                y_stack.append(y_current)
-            y_stack = torch.stack(y_stack, dim=1)
-            
-            r = (y_stack[:,:,0:6]-y_window[:,:,0:6])**2
-            if weigh_by_y_var: r = r / y.std(dim=0).pow(2)[None,None,:].repeat(y_stack.shape[0],y_stack.shape[1],1)
-            if one_number:
-                to_return = torch.mean(r.reshape((-1,)))
-            elif mean_channels: 
-                to_return = torch.mean(torch.mean(r,dim=0),dim=1)
-            else: 
-                to_return = torch.mean(r,dim=0)
-            if return_simulation_data:
-                return (to_return, y_stack, y_window, u_window, r)
-            else:
-                return to_return
-
-
     def finalize_model(self):
         #this needs to be done before plotting
         self.Loss_val, self.Loss_train, self.batch_id, self.time, self.epoch_id = np.array(self.Loss_val), np.array(self.Loss_train), np.array(self.batch_id), np.array(self.time), np.array(self.epoch_id)
