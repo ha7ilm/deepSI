@@ -164,7 +164,8 @@ class System_torch(System_fittable):
         print('fit :: in this modified version of DeepSI, we treat differently the PHY and ANN parameters of the robot')
         parameters_and_optim.append({'params':list(self.fn.parameters())[0:4]}) #only the first 4 parameters of the fn: this is for the PHY model
         #parameters_and_optim.append({'params':list(self.fn.parameters())[4:]}) #the 4+ parameters of the fn: this is for the ANN
-        parameters_and_optim.append({'params':list(self.fn.parameters())[4:], 'weight_decay': 0.1}) #the 4+ parameters of the fn: this is for the ANN, with weight decay if needed
+        parameters_and_optim.append({'params':list(self.fn.parameters())[4:]}) #the 4+ parameters of the fn: this is for the ANN, with weight decay if needed
+        #parameters_and_optim.append({'params':list(self.fn.parameters())[4:], 'weight_decay': 0.1}) #the 4+ parameters of the fn: this is for the ANN, with weight decay if needed
 
         self.optimizer = self.init_optimizer(parameters_and_optim, **optimizer_kwargs)
         self.scheduler = self.init_scheduler(**scheduler_kwargs)
@@ -374,8 +375,8 @@ class System_torch(System_fittable):
         logfile = open('deepsi-params.txt','w')
         print("deepsi :: you will find the logfile at ", os.getcwd()+'/deepsi-params.txt') 
 
-        current_train_andras_nsn = self.andras_n_step_nrms(train_sys_data, 15)
-        current_gerben_train_nsn = self.cal_validation_error(train_sys_data, validation_measure='15-step-NRMS')
+        #current_train_andras_nsn = self.andras_n_step_nrms(train_sys_data, 15)
+        #current_gerben_train_nsn = self.cal_validation_error(train_sys_data, validation_measure='15-step-NRMS')
 
         try:
             t = Tictoctimer()
@@ -546,7 +547,9 @@ class System_torch(System_fittable):
                     print(f'{Loss_str}, {time_str}, {batch_str}')
                     if print_full_time_profile:
                         print('Time profile:',t.percent())
-
+                stopme_ctrlc_doesnt_work = False
+                if stopme_ctrlc_doesnt_work: #we shall put a breakpoint here and then change this flag from the debug console
+                    break
                 ####### Timeout Breaking ##########
                 if timeout is not None:
                     if time.time() >= start_t+timeout:
