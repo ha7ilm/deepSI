@@ -164,8 +164,10 @@ class System_torch(System_fittable):
         print('fit :: in this modified version of DeepSI, we treat differently the PHY and ANN parameters of the robot')
         parameters_and_optim.append({'params':list(self.fn.parameters())[0:4]}) #only the first 4 parameters of the fn: this is for the PHY model
         #parameters_and_optim.append({'params':list(self.fn.parameters())[4:]}) #the 4+ parameters of the fn: this is for the ANN
-        parameters_and_optim.append({'params':list(self.fn.parameters())[4:]}) #the 4+ parameters of the fn: this is for the ANN, with weight decay if needed
-        #parameters_and_optim.append({'params':list(self.fn.parameters())[4:], 'weight_decay': 0.1}) #the 4+ parameters of the fn: this is for the ANN, with weight decay if needed
+        if hasattr(self,'nn_weight_decay'):
+            parameters_and_optim.append({'params':list(self.fn.parameters())[4:], 'weight_decay': self.nn_weight_decay}) #the 4+ parameters of the fn: this is for the ANN, with weight decay if needed
+        else:
+            parameters_and_optim.append({'params':list(self.fn.parameters())[4:]}) #the 4+ parameters of the fn: this is for the ANN, with weight decay if needed
 
         self.optimizer = self.init_optimizer(parameters_and_optim, **optimizer_kwargs)
         self.scheduler = self.init_scheduler(**scheduler_kwargs)
@@ -526,7 +528,10 @@ class System_torch(System_fittable):
                     def print_dyn(x, num):
                         print('L_'+str(num)+'xx =', x[0], ', L_'+str(num)+'xy =', x[1], ', L_'+str(num)+'xz =', x[2], ', L_'+str(num)+'yy =', x[3], ', L_'+str(num)+'yz =', x[4], ', L_'+str(num)+'zz =', x[5], ', l_'+str(num)+'x =', x[6], ', l_'+str(num)+'y =', x[7], ', l_'+str(num)+'z =', x[8], ', m_'+str(num)+' =', x[9], ', Ia_'+str(num)+' =', x[10], file=fval2dup)
                     for i in range(6):
-                        print_dyn(self.optimizer.param_groups[0]['params'][1][(11*i):(11*i+11)].detach().numpy(), i+1)
+                        try:
+                            print_dyn(self.optimizer.param_groups[0]['params'][1][(11*i):(11*i+11)].detach().numpy(), i+1)
+                        except:
+                            pass
 
 
                     fval2dup.flush()
