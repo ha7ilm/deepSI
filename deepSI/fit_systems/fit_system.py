@@ -374,8 +374,8 @@ class System_torch(System_fittable):
         logfile = open('deepsi-params.txt','w')
         print("deepsi :: you will find the logfile at ", os.getcwd()+'/deepsi-params.txt') 
 
-        current_train_andras_nsn = self.andras_n_step_nrms(train_sys_data, 15)
-        current_gerben_train_nsn = self.cal_validation_error(train_sys_data, validation_measure='15-step-NRMS')
+        #current_train_andras_nsn = self.andras_n_step_nrms(train_sys_data, 15)
+        #current_gerben_train_nsn = self.cal_validation_error(train_sys_data, validation_measure='15-step-NRMS')
 
         try:
             t = Tictoctimer()
