@@ -164,7 +164,10 @@ class System_torch(System_fittable):
         print('fit :: in this modified version of DeepSI, we treat differently the PHY and ANN parameters of the robot')
         parameters_and_optim.append({'params':list(self.fn.parameters())[0:4]}) #only the first 4 parameters of the fn: this is for the PHY model
         #parameters_and_optim.append({'params':list(self.fn.parameters())[4:]}) #the 4+ parameters of the fn: this is for the ANN
-        parameters_and_optim.append({'params':list(self.fn.parameters())[4:], 'weight_decay': 0.1}) #the 4+ parameters of the fn: this is for the ANN, with weight decay if needed
+        if hasattr(self,'nn_weight_decay'):
+            parameters_and_optim.append({'params':list(self.fn.parameters())[4:], 'weight_decay': self.nn_weight_decay}) #the 4+ parameters of the fn: this is for the ANN, with weight decay if needed
+        else:
+            parameters_and_optim.append({'params':list(self.fn.parameters())[4:]}) #the 4+ parameters of the fn: this is for the ANN, with weight decay if needed
 
         self.optimizer = self.init_optimizer(parameters_and_optim, **optimizer_kwargs)
         self.scheduler = self.init_scheduler(**scheduler_kwargs)
@@ -284,10 +287,13 @@ class System_torch(System_fittable):
         The default checkpoint location is "C:/Users/USER/AppData/Local/deepSI/checkpoints" for windows and ~/.deepSI/checkpoints/ for unix like.
         These can be loaded manually using sys.load_checkpoint("_best") or "_last". (For this to work the sys.unique_code needs to be set to the correct string)
         '''
-        def validation(train_loss=None, time_elapsed_total=None):
+        def validation(train_loss=None, time_elapsed_total=None, epoch=None):
             self.eval()
             if self.tgt_device == 'cuda': self.cuda()
-            Loss_val = self.cal_validation_error_derivn(val_sys_data, validation_measure=validation_measure)
+            if validation_measure == 'andras-derivn':
+                Loss_val = self.cal_validation_error_derivn(val_sys_data, validation_measure=validation_measure)
+            elif validation_measure.startswith('andras-nstep-'):
+                Loss_val = self.andras_n_step_nrms(val_sys_data, int(validation_measure.split('andras-nstep-')[1]), one_number=True)
             self.Loss_val.append(Loss_val)
             self.Loss_train.append(train_loss)
             self.time.append(time_elapsed_total)
@@ -296,12 +302,12 @@ class System_torch(System_fittable):
             if self.bestfit>=Loss_val:
                 self.bestfit = Loss_val
                 self.i_am_bestmodel = True
-                #self.checkpoint_save_system()
-                #self.bestmodel = None
-                #selfcopy = deepcopy(self)
-                #if cuda: selfcopy.cpu()
-                #self.bestmodel = selfcopy.__dict__
-                #self.i_am_bestmodel = False
+                self.bestmodel = None
+                self.bestmodel_epoch = epoch
+                selfcopy = deepcopy(self)
+                if cuda: selfcopy.cpu()
+                self.bestmodel = selfcopy.__dict__
+                self.i_am_bestmodel = False
             self.train()
             return Loss_val
         
@@ -368,7 +374,7 @@ class System_torch(System_fittable):
             self.remote_start(val_sys_data, validation_measure)
             self.remote_send(float('nan'), extra_t)
         else: #start with the initial validation 
-            validation(train_loss=float('nan'), time_elapsed_total=extra_t) #also sets current model to cuda
+            validation(train_loss=float('nan'), time_elapsed_total=extra_t, epoch=0) #also sets current model to cuda
             if verbose: 
                 print(f'Initial Validation {validation_measure}=', self.Loss_val[-1])
         logfile = open('deepsi-params.txt','w')
@@ -471,13 +477,14 @@ class System_torch(System_fittable):
                     andras_tic = time.time()
                     sys.stdout.write('fit :: validating... ')
                     validation(train_loss=train_loss_epoch, \
-                               time_elapsed_total=time.time()-start_t+extra_t) #updates bestfit and goes back to cpu and back
+                               time_elapsed_total=time.time()-start_t+extra_t, epoch=epoch) #updates bestfit and goes back to cpu and back
                     andras_toc = time.time()-andras_tic
                     print('validation done in '+str(andras_toc)+' s')
                 t.toc('val')
                 t.pause()
 
                 if epoch%1000==0:
+                    """
                     andras_tic = time.time()
                     sys.stdout.write('fit :: validating N-step-NRMS on PHY... ')
                     self.eval()
@@ -491,19 +498,20 @@ class System_torch(System_fittable):
                     print(f"epoch {epoch} validation_nsn: {current_val_nsn}", file=fval2dup)
                     if self.bestfit_nsn>=current_val_nsn:
                         self.bestfit_nsn = current_val_nsn
-                        self.i_am_bestmodel = True
-                        self.bestmodel = None
-                        self.bestmodel_epoch = epoch
-                        selfcopy = deepcopy(self)
-                        if cuda: selfcopy.cpu()
-                        self.bestmodel = selfcopy.__dict__
-                        self.i_am_bestmodel = False
+                        #self.i_am_bestmodel = True
+                        #self.bestmodel = None
+                        #self.bestmodel_epoch = epoch
+                        #selfcopy = deepcopy(self)
+                        #if cuda: selfcopy.cpu()
+                        #self.bestmodel = selfcopy.__dict__
+                        #self.i_am_bestmodel = False
                         print('🙂 new lowest validation-nsn error: '+str(self.bestfit_nsn))
                         print('🙂 new lowest validation-nsn error: '+str(self.bestfit_nsn), file=fval2dup)
                     self.train()
                     andras_toc = time.time()-andras_tic
                     print('validation NsN done in '+str(andras_toc)+' s')
                     andras_toc = time.time()-andras_tic
+                    """
                     print('abs max [0] friction parameters:  ', self.optimizer.param_groups[0]['params'][0].abs().max().item(), file=fval2dup)
                     print('abs max [1] dynamical parameters: ', self.optimizer.param_groups[0]['params'][1].abs().max().item(), file=fval2dup)
                     print('abs max [2] hwc parameters:       ', self.optimizer.param_groups[0]['params'][2].abs().max().item(), file=fval2dup)
@@ -520,7 +528,10 @@ class System_torch(System_fittable):
                     def print_dyn(x, num):
                         print('L_'+str(num)+'xx =', x[0], ', L_'+str(num)+'xy =', x[1], ', L_'+str(num)+'xz =', x[2], ', L_'+str(num)+'yy =', x[3], ', L_'+str(num)+'yz =', x[4], ', L_'+str(num)+'zz =', x[5], ', l_'+str(num)+'x =', x[6], ', l_'+str(num)+'y =', x[7], ', l_'+str(num)+'z =', x[8], ', m_'+str(num)+' =', x[9], ', Ia_'+str(num)+' =', x[10], file=fval2dup)
                     for i in range(6):
-                        print_dyn(self.optimizer.param_groups[0]['params'][1][(11*i):(11*i+11)].detach().numpy(), i+1)
+                        try:
+                            print_dyn(self.optimizer.param_groups[0]['params'][1][(11*i):(11*i+11)].detach().numpy(), i+1)
+                        except:
+                            pass
 
 
                     fval2dup.flush()
@@ -546,7 +557,9 @@ class System_torch(System_fittable):
                     print(f'{Loss_str}, {time_str}, {batch_str}')
                     if print_full_time_profile:
                         print('Time profile:',t.percent())
-
+                stopme_ctrlc_doesnt_work = False
+                if stopme_ctrlc_doesnt_work: #we shall put a breakpoint here and then change this flag from the debug console
+                    break
                 ####### Timeout Breaking ##########
                 if timeout is not None:
                     if time.time() >= start_t+timeout:
