@@ -565,8 +565,9 @@ class System_torch(System_fittable):
                     if time.time() >= start_t+timeout:
                         break
                 if hasattr(self,'epoch_patience') and epoch-best_epoch >= self.epoch_patience:
-                    print(f'No improvement in {self.epoch_patience} epochs, stopping training')
-                    break
+                    if not (hasattr(self,'epoch_patience_min') and self.epoch_patience_min > epoch):
+                        print(f'No improvement in {self.epoch_patience} epochs, stopping training')
+                        break
         except KeyboardInterrupt:
             #os.dup2(stdout_dup,sys.stdout.fileno())
             print('Stopping early due to a KeyboardInterrupt')
