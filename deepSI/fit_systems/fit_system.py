@@ -566,9 +566,9 @@ class System_torch(System_fittable):
                         break
                 if hasattr(self,'epoch_patience'):
                     if hasattr(self,'epoch_patience_min'):
-                        epm_condition = epoch-best_epoch >= self.epoch_patience 
-                    else:
                         epm_condition = epoch-max(self.epoch_patience_min, best_epoch) >= self.epoch_patience 
+                    else:
+                        epm_condition = epoch-best_epoch >= self.epoch_patience 
                     if epm_condition:
                         print(f'No improvement in {self.epoch_patience} epochs, stopping training')
                         break
